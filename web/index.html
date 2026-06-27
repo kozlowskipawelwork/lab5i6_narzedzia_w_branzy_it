@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<!--
+  UI konwertera (Task8) — motyw "Nocturne". Czysty HTML/CSS/JS, bez zewnetrznych
+  zasobow (dziala offline w .exe). Cala konwersja i zapis pliku dzieja sie po
+  stronie Pythona przez window.pywebview.api.* (patrz gui.py).
+-->
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Converter</title>
+<style>
+  :root{
+    --bg:#08080a; --panel:#101013; --panel2:#0c0c0e; --line:#24242a; --line2:#3a3a42;
+    --ink:#e9e5db; --dim:#8b887f; --faint:#56544d; --crimson:#b6403d; --crimsondim:#7c2c2a;
+    --serif:Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,'Cascadia Code','Consolas','JetBrains Mono',monospace;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ background:var(--bg); }
+  ::selection{ background:#7a2424; color:#f3efe6; }
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+  ::-webkit-scrollbar-track{ background:#0c0c0e; }
+  ::-webkit-scrollbar-thumb{ background:#26262a; border:2px solid #0c0c0e; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  @keyframes blink{ 0%,55%{ opacity:1; } 56%,100%{ opacity:.18; } }
+
+  body{ color:var(--ink); font-family:var(--mono); user-select:none; }
+  .app{ position:relative; min-height:100vh; padding:34px 40px 44px; overflow:hidden; }
+  .app::before{ content:''; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(120% 90% at 50% -10%, rgba(182,64,61,.05), transparent 42%),
+               radial-gradient(140% 120% at 50% 120%, rgba(0,0,0,.6), transparent 55%); }
+  .wrap{ position:relative; max-width:1240px; margin:0 auto; }
+
+  /* HEADER */
+  .hdr{ display:flex; align-items:flex-end; justify-content:space-between;
+        border-bottom:2px solid var(--ink); padding-bottom:18px; }
+  .kicker{ display:flex; align-items:center; gap:14px; color:var(--crimson);
+           font-size:13px; letter-spacing:.42em; margin-bottom:10px; }
+  h1{ font-family:var(--serif); font-weight:700; font-size:54px; line-height:.92;
+      letter-spacing:.04em; }
+  .hdr-right{ text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:12px; }
+  .chips{ display:flex; gap:8px; }
+  .chip{ border:1px solid var(--line2); padding:5px 11px; font-size:11px; letter-spacing:.22em; color:var(--dim); }
+  .status{ display:flex; align-items:center; gap:9px; font-size:11px; letter-spacing:.24em; color:var(--dim); }
+  .status .dot{ width:8px; height:8px; background:var(--crimson); display:inline-block; animation:blink 2.4s steps(1) infinite; }
+
+  /* GRID */
+  .grid{ display:grid; grid-template-columns:1fr 86px 1fr; margin-top:28px; align-items:stretch; }
+  .panel{ border:2px solid var(--line2); background:var(--panel); display:flex; flex-direction:column; min-height:430px; }
+  .panel-hd{ display:flex; align-items:center; justify-content:space-between;
+             border-bottom:1px solid var(--line); padding:13px 16px; background:var(--panel2); }
+  .panel-hd .ttl{ font-family:var(--serif); font-size:14px; letter-spacing:.28em; color:var(--ink); }
+  .hd-tools{ display:flex; align-items:center; gap:10px; }
+  .badge{ font-size:11px; letter-spacing:.2em; color:var(--crimson); border:1px solid var(--crimsondim);
+          padding:3px 9px; cursor:pointer; }
+  .badge:hover{ background:rgba(182,64,61,.12); }
+  .mini-btn{ background:none; border:1px solid var(--line2); color:var(--dim); font-family:inherit;
+             font-size:10px; letter-spacing:.2em; padding:4px 9px; cursor:pointer; }
+  .mini-btn:hover{ border-color:var(--crimson); color:var(--crimson); }
+  .hint{ font-size:10px; letter-spacing:.2em; color:var(--faint); }
+
+  textarea.area, pre.out{ flex:1; width:100%; resize:none; border:none; outline:none;
+    background:var(--panel2); color:var(--ink); font-family:var(--mono); font-size:12.5px;
+    line-height:1.65; padding:16px; tab-size:2; }
+  pre.out{ margin:0; height:100%; overflow:auto; white-space:pre; }
+  textarea.area::placeholder{ color:#4a4842; }
+
+  .valid-foot{ display:flex; align-items:center; gap:9px; padding:11px 16px;
+               border-top:1px solid var(--line); font-size:11px; letter-spacing:.14em; }
+  .vdot{ width:8px; height:8px; display:inline-block; flex-shrink:0; background:var(--faint); }
+  .vdot.ok{ background:var(--ink); } .vdot.bad{ background:var(--crimson); }
+  .vtext{ color:var(--faint); } .vtext.ok{ color:var(--dim); } .vtext.bad{ color:var(--crimson); }
+
+  .gutter{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; color:var(--faint); }
+  .gutter .cross{ font-size:22px; color:var(--crimson); }
+  .gutter .arrow{ font-size:30px; color:var(--line2); }
+  .gutter .vert{ writing-mode:vertical-rl; font-size:10px; letter-spacing:.4em; color:var(--faint); }
+
+  .fmt-row{ display:grid; grid-template-columns:1fr 1fr 1fr; border-bottom:1px solid var(--line); }
+  .fmt-btn{ background:none; border:none; border-right:1px solid var(--line); color:var(--dim);
+            font-family:var(--serif); font-weight:600; font-size:13px; letter-spacing:.18em;
+            padding:15px 0; cursor:pointer; transition:all .12s; }
+  .fmt-btn:last-child{ border-right:none; }
+  .fmt-btn.active{ background:var(--crimson); color:var(--bg); }
+  .file-row{ display:flex; align-items:center; gap:10px; padding:11px 16px; border-bottom:1px solid var(--line); }
+  .file-row input{ flex:1; background:var(--panel2); border:1px solid var(--line); outline:none;
+    color:var(--ink); font-family:inherit; font-size:12px; padding:7px 10px; }
+  .file-row input:focus{ border-color:var(--crimson); }
+  .out-area{ flex:1; min-height:0; position:relative; }
+  .await{ height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;
+          gap:12px; color:var(--faint); }
+  .await .box{ font-size:30px; }
+  .await .lbl{ font-size:11px; letter-spacing:.26em; }
+
+  /* CONVERT BAR */
+  .convert-bar{ margin-top:22px; display:flex; align-items:stretch; border:2px solid var(--ink); }
+  #btnConvert{ display:flex; align-items:center; justify-content:center; gap:12px; min-width:320px;
+    padding:18px 40px; border:none; cursor:pointer; background:var(--ink); color:var(--bg);
+    font-family:var(--serif); font-weight:700; font-size:16px; letter-spacing:.22em; transition:background .15s; }
+  #btnConvert:hover{ background:var(--crimson); color:var(--ink); }
+  #btnConvert.busy{ background:var(--crimsondim); color:var(--ink); cursor:wait; }
+  .spin{ width:13px; height:13px; border:2px solid var(--bg); border-top-color:transparent;
+         border-radius:50%; display:inline-block; animation:spin .7s linear infinite; }
+  .progress{ flex:1; position:relative; background:var(--panel2); display:flex; align-items:center; padding:0 18px; min-width:0; }
+  .progress .fill{ position:absolute; left:0; top:0; bottom:0; background:var(--crimsondim);
+                   width:0; transition:width .2s linear; opacity:.5; }
+  .progress .plbl{ position:relative; font-size:11px; letter-spacing:.2em; color:var(--dim); white-space:nowrap; }
+
+  /* CONSOLE */
+  .console{ margin-top:22px; border:1px solid var(--line2); background:var(--panel2); }
+  .console-hd{ display:flex; align-items:center; justify-content:space-between;
+               border-bottom:1px solid var(--line); padding:9px 16px; }
+  .console-hd .l{ font-size:11px; letter-spacing:.28em; color:var(--dim); }
+  .console-hd .r{ font-size:10px; letter-spacing:.2em; color:var(--faint); }
+  .console-body{ height:150px; overflow:auto; padding:12px 16px; font-size:11.5px; line-height:1.95; }
+  .log-row{ display:flex; gap:14px; }
+  .log-row .t{ color:var(--faint); flex-shrink:0; }
+  .log-row .m.info{ color:var(--dim); }
+  .log-row .m.ok{ color:var(--ink); }
+  .log-row .m.err{ color:var(--crimson); font-weight:700; }
+  .log-row .m.done{ color:var(--crimson); font-weight:700; letter-spacing:.16em; }
+  .idle{ color:var(--faint); letter-spacing:.14em; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="wrap">
+
+    <!-- HEADER -->
+    <header class="hdr">
+      <div>
+        <div class="kicker"><span>&#8224;</span><span>NOCTURNE&nbsp;//&nbsp;STRUCTURED&nbsp;DATA</span></div>
+        <h1>DATA&nbsp;CONVERTER</h1>
+      </div>
+      <div class="hdr-right">
+        <div class="chips"><span class="chip">.JSON</span><span class="chip">.YAML</span><span class="chip">.XML</span></div>
+        <div class="status"><span class="dot"></span><span id="statusLabel">READY</span></div>
+      </div>
+    </header>
+
+    <!-- GRID -->
+    <main class="grid">
+
+      <!-- SOURCE -->
+      <section class="panel">
+        <div class="panel-hd">
+          <span class="ttl">01 &mdash; SOURCE</span>
+          <div class="hd-tools">
+            <span class="badge" id="sourceBadge" title="kliknij, by zmienic format zrodla">.JSON</span>
+            <button class="mini-btn" id="btnBrowse">BROWSE &#8674;</button>
+            <button class="mini-btn" id="btnClear">CLEAR</button>
+          </div>
+        </div>
+        <textarea class="area" id="sourceContent" spellcheck="false"
+                  placeholder="// wczytaj plik (BROWSE) albo wklej surowe dane"></textarea>
+        <div class="valid-foot">
+          <span class="vdot" id="vdot"></span>
+          <span class="vtext" id="vtext">EMPTY BUFFER</span>
+        </div>
+      </section>
+
+      <!-- GUTTER -->
+      <div class="gutter">
+        <span class="cross">&#8224;</span>
+        <span class="arrow">&#8594;</span>
+        <span class="vert">TRANSMUTE</span>
+      </div>
+
+      <!-- TARGET -->
+      <section class="panel">
+        <div class="panel-hd">
+          <span class="ttl">02 &mdash; TARGET</span>
+          <span class="hint">OUTPUT FORMAT</span>
+        </div>
+        <div class="fmt-row">
+          <button class="fmt-btn" data-fmt="json">JSON</button>
+          <button class="fmt-btn active" data-fmt="yaml">YAML</button>
+          <button class="fmt-btn" data-fmt="xml">XML</button>
+        </div>
+        <div class="file-row">
+          <span class="hint">FILE</span>
+          <input id="targetName" spellcheck="false" value="output.yaml">
+        </div>
+        <div class="out-area">
+          <pre class="out" id="outputPre" style="display:none;"></pre>
+          <div class="await" id="awaiting">
+            <span class="box">&#9633;</span>
+            <span class="lbl">AWAITING CONVERSION</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- CONVERT BAR -->
+    <div class="convert-bar">
+      <button id="btnConvert"><span id="spin" style="display:none;" class="spin"></span><span id="convertLabel">CONVERT &#8224;</span></button>
+      <div class="progress"><div class="fill" id="progFill"></div><span class="plbl" id="progLabel">pipeline idle</span></div>
+    </div>
+
+    <!-- CONSOLE -->
+    <section class="console">
+      <div class="console-hd">
+        <span class="l">&#9656; CONSOLE</span>
+        <span class="r">async worker &middot; <span id="workerState">idle</span></span>
+      </div>
+      <div class="console-body" id="console"><span class="idle">$ idle &mdash; awaiting instruction&hellip;</span></div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ---------- stan ----------
+const state = {
+  sourceName: "", sourceDir: "", sourceFormat: "json",
+  sourceContent: "", sourceValid: null, sourceError: "",
+  targetFormat: "yaml", targetName: "output.yaml",
+  output: "", converting: false,
+};
+
+const $ = (id) => document.getElementById(id);
+const api = () => (window.pywebview && window.pywebview.api) ? window.pywebview.api : null;
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const now = () => new Date().toLocaleTimeString("en-GB");
+const fmtExt = (f) => (f === "yaml" ? "yaml" : f);
+const baseName = (n) => { const i = (n || "").lastIndexOf("."); return i > 0 ? n.slice(0, i) : (n || "output"); };
+
+// ---------- konsola ----------
+function classify(text) {
+  const t = text.toLowerCase();
+  if (t.startsWith("error")) return "err";
+  if (text.includes("COMPLETE")) return "done";
+  if (t.startsWith("validate") || t.startsWith("write") || t.includes(" ok")) return "ok";
+  return "info";
+}
+function clearConsole() { $("console").innerHTML = ""; }
+function logLine(time, text) {
+  const c = $("console");
+  if (c.querySelector(".idle")) c.innerHTML = "";
+  const row = document.createElement("div");
+  row.className = "log-row";
+  const ts = document.createElement("span"); ts.className = "t"; ts.textContent = time;
+  const ms = document.createElement("span"); ms.className = "m " + classify(text); ms.textContent = text;
+  row.appendChild(ts); row.appendChild(ms);
+  c.appendChild(row); c.scrollTop = c.scrollHeight;
+}
+
+// ---------- walidacja zrodla ----------
+function setValidity(valid, err) {
+  state.sourceValid = valid; state.sourceError = err || "";
+  const dot = $("vdot"), txt = $("vtext");
+  dot.className = "vdot" + (valid === true ? " ok" : valid === false ? " bad" : "");
+  txt.className = "vtext" + (valid === true ? " ok" : valid === false ? " bad" : "");
+  if (valid === true) txt.textContent = "SYNTAX VALID · " + state.sourceFormat.toUpperCase();
+  else if (valid === false) { const e = err || ""; txt.textContent = "INVALID · " + (e.length > 50 ? e.slice(0, 50) + "…" : e); }
+  else txt.textContent = "EMPTY BUFFER";
+}
+let valTimer = null;
+function scheduleValidate() {
+  clearTimeout(valTimer);
+  valTimer = setTimeout(async () => {
+    if (!state.sourceContent.trim()) { setValidity(null, ""); return; }
+    const a = api(); if (!a) return;
+    try { const v = await a.validate(state.sourceContent, state.sourceFormat); setValidity(v.ok, v.ok ? "" : v.error); }
+    catch (e) { setValidity(false, String(e)); }
+  }, 350);
+}
+
+// ---------- render ----------
+function syncTargetName() {
+  state.targetName = baseName(state.sourceName || "output") + "." + fmtExt(state.targetFormat);
+  $("targetName").value = state.targetName;
+}
+function render() {
+  $("statusLabel").textContent = state.converting ? "WORKING" : "READY";
+  $("workerState").textContent = state.converting ? "busy" : "idle";
+  $("sourceBadge").textContent = "." + state.sourceFormat.toUpperCase();
+  document.querySelectorAll(".fmt-btn").forEach(b =>
+    b.classList.toggle("active", b.dataset.fmt === state.targetFormat));
+  const hasOut = !!state.output;
+  $("outputPre").style.display = hasOut ? "block" : "none";
+  $("awaiting").style.display = hasOut ? "none" : "flex";
+  $("outputPre").textContent = state.output;
+  $("convertLabel").textContent = state.converting ? "CONVERTING…" : "CONVERT †";
+  $("btnConvert").classList.toggle("busy", state.converting);
+  $("btnConvert").disabled = state.converting;
+  $("spin").style.display = state.converting ? "inline-block" : "none";
+}
+function setProgress(p) {
+  $("progFill").style.width = p + "%";
+  $("progLabel").textContent = state.converting ? ("pipeline " + p + "%") : (state.output ? "last run · 100% · ok" : "pipeline idle");
+}
+
+// ---------- akcje ----------
+async function browse() {
+  const a = api(); if (!a) { logLine(now(), "error · mostek pywebview niedostepny"); return; }
+  const path = await a.pick_open();
+  if (!path) return;
+  const res = await a.read_source(path);
+  if (!res.ok) { logLine(now(), "error · " + res.error); return; }
+  state.sourceName = res.name; state.sourceDir = res.dir;
+  state.sourceFormat = res.format === "yml" ? "yaml" : res.format;
+  state.sourceContent = res.text; state.output = "";
+  $("sourceContent").value = res.text;
+  setValidity(res.valid, res.error);
+  syncTargetName(); render();
+  logLine(now(), "load · " + res.name + " (" + res.size + " B)");
+}
+function setTarget(fmt) { state.targetFormat = fmt; syncTargetName(); render(); }
+function clearSource() {
+  state.sourceName = ""; state.sourceDir = ""; state.sourceContent = "";
+  state.sourceValid = null; state.sourceError = ""; state.output = "";
+  $("sourceContent").value = ""; setValidity(null, ""); render();
+}
+function cycleSourceFormat() {
+  const order = ["json", "yaml", "xml"];
+  state.sourceFormat = order[(order.indexOf(state.sourceFormat) + 1) % 3];
+  render(); scheduleValidate();
+}
+async function convert() {
+  if (state.converting) return;
+  const a = api(); if (!a) { logLine(now(), "error · mostek pywebview niedostepny"); return; }
+  if (!state.sourceContent.trim()) { logLine(now(), "error · brak danych zrodlowych"); return; }
+  const v = await a.validate(state.sourceContent, state.sourceFormat);
+  if (!v.ok) { logLine(now(), "error · " + v.error); setValidity(false, v.error); return; }
+
+  state.converting = true; state.output = ""; clearConsole(); setProgress(0); render();
+  try {
+    const res = await a.convert(state.sourceContent, state.sourceFormat, state.targetFormat, state.sourceDir, state.targetName);
+    const logs = res.log || [];
+    for (let i = 0; i < logs.length; i++) {
+      logLine(logs[i].time, logs[i].text);
+      state.converting = true; setProgress(Math.round(((i + 1) / logs.length) * 100));
+      await sleep(110);
+    }
+    if (res.ok) { state.output = res.output; }
+    else if (res.error) { setValidity(false, res.error); }
+  } catch (e) {
+    logLine(now(), "error · " + e);
+  } finally {
+    state.converting = false; render(); setProgress(state.output ? 100 : 0);
+  }
+}
+
+// ---------- podpiecie zdarzen ----------
+window.addEventListener("DOMContentLoaded", () => {
+  $("btnBrowse").addEventListener("click", browse);
+  $("btnClear").addEventListener("click", clearSource);
+  $("btnConvert").addEventListener("click", convert);
+  $("sourceBadge").addEventListener("click", cycleSourceFormat);
+  $("targetName").addEventListener("input", (e) => { state.targetName = e.target.value; });
+  $("sourceContent").addEventListener("input", (e) => { state.sourceContent = e.target.value; state.output = ""; render(); scheduleValidate(); });
+  document.querySelectorAll(".fmt-btn").forEach(b => b.addEventListener("click", () => setTarget(b.dataset.fmt)));
+  render();
+});
+</script>
+</body>
+</html>
