@@ -64,7 +64,7 @@ def _load_yaml(text: str) -> Any:
 
 
 def _dump_yaml(obj: Any) -> str:
-    raise ConversionError("Zapis YAML nie jest jeszcze zaimplementowany (Task5).")
+    return yaml.safe_dump(obj, allow_unicode=True, sort_keys=False, default_flow_style=False)
 
 
 def _load_xml(text: str) -> Any:
