@@ -57,7 +57,10 @@ def _dump_json(obj: Any) -> str:
 
 
 def _load_yaml(text: str) -> Any:
-    raise ConversionError("Wczytywanie YAML nie jest jeszcze zaimplementowane (Task4).")
+    try:
+        return yaml.safe_load(text)
+    except yaml.YAMLError as e:
+        raise ConversionError(f"Niepoprawny YAML: {e}") from e
 
 
 def _dump_yaml(obj: Any) -> str:
