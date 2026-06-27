@@ -68,6 +68,30 @@ Gotowy `.exe` powstaje automatycznie w GitHub Actions (artefakt builda).
 | Task8 | wersja z UI | `gui.py`, `web/index.html` |
 | Task9 | async odczyt/zapis w UI | `gui.py` (watek roboczy) |
 
+## Historia / decyzje projektowe (iteracje)
+
+Sekcja szczera, opisujaca droge do finalnego rozwiazania GUI:
+
+1. **Pierwszy wybor: pywebview (HTML/CSS).** Popelnilem blad wybierajac pywebview do
+   GUI — wynikowy plik `.exe` GUI **nie uruchamia sie pod wine**, poniewaz pywebview
+   na Windows wymaga silnika **Edge WebView2**, ktorego w wine nie ma. Przez to nie
+   bylem w stanie przetestowac GUI `.exe` lokalnie na Linuksie.
+
+2. **Iteracja z natywnym ELF-em w pipeline.** Rozwazalem zbudowanie w CI natywnego
+   linuksowego pliku wykonywalnego (ELF) GUI przez PyInstaller, zeby dalo sie go
+   odpalic na Linuksie bez wine. Problem: bundle pywebview + WebKitGTK w trybie
+   `--onefile` wyszedl **~435 MB** i potrafil cicho wisiec (webkit odpala podprocesy,
+   ktore w rozpakowanym onefile nie zawsze startuja). To nie byla droga do utrzymania
+   w pipeline.
+
+3. **Finalna decyzja: przepisanie GUI na PySide6 (Qt).** PySide6 pakuje sie w pelni do
+   samodzielnego `.exe` / ELF-a, **dziala pod wine i na Linuksie**, nie potrzebuje
+   WebView2 ani WebKita, a build jest znacznie lzejszy. Styl interfejsu (ciemny motyw)
+   realizowany przez QSS — arkusz stylow Qt o skladni zblizonej do CSS.
+
+Zbudowane wczesniej pliki `.exe` (wersja pywebview) zostaly zachowane w katalogu
+[`exe_ciekawostki/`](exe_ciekawostki/) jako pamiatka tej iteracji.
+
 ## Konwencja branchy
 
 Kazdy task na osobnej galezi: `Task0`, `Task1`, ... `Task9` — scalane do `master`.
