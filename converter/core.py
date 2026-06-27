@@ -46,7 +46,10 @@ def detect_format(path: str) -> str:
 #  Implementacje per format — zaslepki (wypelniane w Task2-7)                  #
 # --------------------------------------------------------------------------- #
 def _load_json(text: str) -> Any:
-    raise ConversionError("Wczytywanie JSON nie jest jeszcze zaimplementowane (Task2).")
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        raise ConversionError(f"Niepoprawny JSON (linia {e.lineno}, kol. {e.colno}): {e.msg}") from e
 
 
 def _dump_json(obj: Any) -> str:
