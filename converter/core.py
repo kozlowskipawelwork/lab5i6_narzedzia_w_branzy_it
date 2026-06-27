@@ -53,7 +53,7 @@ def _load_json(text: str) -> Any:
 
 
 def _dump_json(obj: Any) -> str:
-    raise ConversionError("Zapis JSON nie jest jeszcze zaimplementowany (Task3).")
+    return json.dumps(obj, ensure_ascii=False, indent=2) + "\n"
 
 
 def _load_yaml(text: str) -> Any:
