@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Konwerter danych — wersja z GUI (Task8), oparta na pywebview.
+"""Konwerter danych — wersja z GUI (Task8/9), oparta na pywebview.
 
 UI to samodzielny HTML/CSS w  web/index.html  (motyw "Nocturne").
 WAZNE: cala konwersja i zapis na dysk dzieja sie po stronie PYTHONA
@@ -9,6 +9,10 @@ WAZNE: cala konwersja i zapis na dysk dzieja sie po stronie PYTHONA
     window.pywebview.api.read_source(path)                   -> {name,dir,format,text,valid,...}
     window.pywebview.api.validate(text, fmt)                 -> {ok, error?}
     window.pywebview.api.convert(text, srcFmt, dstFmt, dir, name) -> {ok, output, out_path, log[]}
+
+Task9 (async/wielowatkowo): wlasciwa konwersja + zapis pliku leca w osobnym
+watku roboczym (threading.Thread), a wywolania API i tak sa dispatchowane przez
+pywebview poza watkiem renderujacym UI, wiec okno sie nie zacina.
 
 Budowanie .exe (bez okna konsoli):
     pyinstaller --onefile --noconsole --add-data "web;web" gui.py
@@ -20,6 +24,7 @@ from __future__ import annotations
 import datetime
 import os
 import sys
+import threading
 
 import webview  # pywebview
 
@@ -101,37 +106,45 @@ class Api:
         except Exception as e:  # zabezpieczenie
             return {"ok": False, "error": str(e)}
 
-    # --- wlasciwa konwersja (Task2-7) ------------------------------------ #
+    # --- wlasciwa konwersja (Task2-7) w osobnym watku (Task9) ------------ #
     def convert(self, text: str, src_fmt: str, dst_fmt: str, out_dir: str, out_name: str) -> dict:
-        log: list[dict] = []
+        result: dict = {}
 
-        def add(msg: str) -> None:
-            log.append({"time": _ts(), "text": msg})
+        def worker() -> None:
+            log: list[dict] = []
 
-        try:
-            if not (text or "").strip():
-                raise ConversionError("Brak danych zrodlowych.")
-            add(f"read · bufor [{src_fmt}] ({_blen(text)} B)")
-            obj = loads(text, src_fmt)            # parse + walidacja (Task2/4/6)
-            add(f"validate · skladnia {src_fmt} OK")
-            add(f"serialize · obiekt → {dst_fmt}")
-            output = dumps(obj, dst_fmt)          # zapis z obiektu (Task3/5/7)
+            def add(msg: str) -> None:
+                log.append({"time": _ts(), "text": msg})
 
-            target_dir = out_dir if out_dir and os.path.isdir(out_dir) else os.getcwd()
-            ext = "yml" if dst_fmt in ("yaml", "yml") else dst_fmt
-            name = (out_name or f"output.{ext}").strip()
-            out_path = os.path.join(target_dir, name)
-            with open(out_path, "w", encoding="utf-8") as f:
-                f.write(output)
-            add(f"write · {out_path} ({_blen(output)} B)")
-            add(f"COMPLETE · {src_fmt} → {dst_fmt}")
-            return {"ok": True, "output": output, "out_path": out_path, "log": log}
-        except ConversionError as e:
-            add("error · " + str(e))
-            return {"ok": False, "error": str(e), "log": log}
-        except Exception as e:  # zabezpieczenie przed nieprzewidzianym
-            add("error · " + str(e))
-            return {"ok": False, "error": f"Nieoczekiwany blad: {e}", "log": log}
+            try:
+                if not (text or "").strip():
+                    raise ConversionError("Brak danych zrodlowych.")
+                add(f"read · bufor [{src_fmt}] ({_blen(text)} B)")
+                obj = loads(text, src_fmt)            # parse + walidacja (Task2/4/6)
+                add(f"validate · skladnia {src_fmt} OK")
+                add(f"serialize · obiekt → {dst_fmt}")
+                output = dumps(obj, dst_fmt)          # zapis z obiektu (Task3/5/7)
+
+                target_dir = out_dir if out_dir and os.path.isdir(out_dir) else os.getcwd()
+                ext = "yml" if dst_fmt in ("yaml", "yml") else dst_fmt
+                name = (out_name or f"output.{ext}").strip()
+                out_path = os.path.join(target_dir, name)
+                with open(out_path, "w", encoding="utf-8") as f:
+                    f.write(output)
+                add(f"write · {out_path} ({_blen(output)} B)")
+                add(f"COMPLETE · {src_fmt} → {dst_fmt}")
+                result.update(ok=True, output=output, out_path=out_path, log=log)
+            except ConversionError as e:
+                add("error · " + str(e))
+                result.update(ok=False, error=str(e), log=log)
+            except Exception as e:  # zabezpieczenie przed nieprzewidzianym
+                add("error · " + str(e))
+                result.update(ok=False, error=f"Nieoczekiwany blad: {e}", log=log)
+
+        worker_thread = threading.Thread(target=worker, name="convert-worker", daemon=True)
+        worker_thread.start()
+        worker_thread.join()
+        return result
 
 
 def main() -> None:
