@@ -68,7 +68,10 @@ def _dump_yaml(obj: Any) -> str:
 
 
 def _load_xml(text: str) -> Any:
-    raise ConversionError("Wczytywanie XML nie jest jeszcze zaimplementowane (Task6).")
+    try:
+        return xmltodict.parse(text)
+    except Exception as e:  # xmltodict opakowuje rozne bledy parsera SAX
+        raise ConversionError(f"Niepoprawny XML: {e}") from e
 
 
 def _dump_xml(obj: Any) -> str:
