@@ -75,7 +75,17 @@ def _load_xml(text: str) -> Any:
 
 
 def _dump_xml(obj: Any) -> str:
-    raise ConversionError("Zapis XML nie jest jeszcze zaimplementowany (Task7).")
+    # xmltodict.unparse wymaga slownika z DOKLADNIE jednym korzeniem.
+    # Dane z JSON/YAML czesto go nie maja (lista lub kilka kluczy) -> owijamy.
+    if not (isinstance(obj, dict) and len(obj) == 1):
+        obj = {"root": obj}
+    try:
+        return xmltodict.unparse(obj, pretty=True, full_document=True)
+    except Exception as e:
+        raise ConversionError(
+            f"Nie mozna zapisac danych jako XML: {e}\n"
+            f"(np. wartosci None/puste klucze nie mapuja sie na XML)"
+        ) from e
 
 
 # --------------------------------------------------------------------------- #
