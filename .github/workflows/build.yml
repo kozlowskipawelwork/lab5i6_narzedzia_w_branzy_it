@@ -1,0 +1,47 @@
+name: Build EXE
+
+# Uruchamianie workflow (zgodnie z PDF):
+on:
+  schedule:
+    - cron: "0 6 * * 1"        # raz w tygodniu — poniedzialek 06:00 UTC
+  push:
+    branches: [master, main]    # automatycznie po pushowaniu na glowna galaz
+  workflow_dispatch:            # recznie przez usera (przycisk w zakladce Actions)
+
+jobs:
+  build:
+    # domyslny serwer windows (najnowszy dostepny)
+    runs-on: windows-latest
+
+    # domyslny shell: PowerShell (.ps1) — zgodnie z PDF
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout repozytorium
+        uses: actions/checkout@v4
+
+      - name: Konfiguracja Pythona
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Task0 — instalacja komponentow tym samym skryptem co lokalnie
+      - name: Instalacja zaleznosci (installResources.ps1)
+        run: ./installResources.ps1
+
+      - name: Budowanie .exe (CLI)
+        run: pyinstaller --onefile --name konwerter project.py
+
+      - name: Budowanie .exe (GUI)
+        run: pyinstaller --onefile --noconsole --name konwerter-gui --add-data "web;web" gui.py
+
+      # PDF wskazuje upload-artifact@v3, ale GitHub wycofal v3 (styczen 2025) i
+      # taki workflow by sie wywalil — uzywamy dzialajacego v4 (odpowiednik 1:1).
+      - name: Wyslanie artefaktu (.exe)
+        uses: actions/upload-artifact@v4
+        with:
+          name: konwerter-windows
+          path: dist/*.exe
+          if-no-files-found: error
