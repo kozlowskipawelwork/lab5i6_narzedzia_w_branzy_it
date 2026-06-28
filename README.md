@@ -37,21 +37,29 @@ requirements.txt        # zaleznosci (pip install -r)
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt          # GUI na Linux: pip install "pywebview[qt]"
+pip install -r requirements.txt          # GUI na Linux wymaga: sudo apt install libxcb-cursor0
 
 python project.py dane.json dane.yml     # CLI
 python gui.py                            # GUI
 ```
 
-## Budowanie .exe (PyInstaller)
+## Budowanie binarek (PyInstaller)
 
 ```bash
-pyinstaller --onefile project.py                              # CLI
-pyinstaller --onefile --noconsole --add-data "web;web" gui.py # GUI (Windows)
+# Windows .exe (CI: runner windows):
+pyinstaller --onefile --name konwerter project.py   # CLI -> konwerter.exe
+pyinstaller --onefile --name konwerter-gui gui.py   # GUI -> konwerter-gui.exe
+
+# Linux ELF (natywny, bez wine; CI: runner ubuntu):
+pyinstaller --onefile --name konwerter project.py
+pyinstaller --onefile --name konwerter-gui gui.py
 ```
 
-Na Linux/macOS separator w `--add-data` to `:` (czyli `"web:web"`).
-Gotowy `.exe` powstaje automatycznie w GitHub Actions (artefakt builda).
+GitHub Actions buduje automatycznie **dwa artefakty**:
+- `konwerter-windows` — pliki `.exe` (CLI dziala tez pod wine; GUI `.exe` tylko na Windowsie —
+  pod wine 9.0 nie startuje, patrz sekcja *Historia*),
+- `konwerter-linux` — natywne ELF-y; GUI `konwerter-gui` uruchamia sie wprost na Linuksie
+  (`./konwerter-gui`), **bez wine** (wymaga tylko systemowego `libxcb-cursor0`).
 
 > Uwaga: przy zapisie do XML wszystkie wartosci staja sie tekstem (np. liczba
 > `1` wroci jako `"1"`) — to wbudowane ograniczenie formatu XML, nie blad.
