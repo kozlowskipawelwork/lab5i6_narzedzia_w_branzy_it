@@ -1,12 +1,11 @@
 # Zaleznosci runtime + build konwertera danych.
 # Instalacja:  pip install -r requirements.txt
-# (na etapie CI te same komendy sa w installResources.ps1)
 
 pyyaml          # obsluga formatu YAML (Task4/5)
 xmltodict       # obsluga formatu XML  (Task6/7)
-pywebview       # GUI oparte na HTML/CSS (Task8/9)
+PySide6         # GUI (Qt) — Task8/9; pakuje sie do samodzielnego .exe/ELF (dziala pod wine)
 pyinstaller     # budowanie pliku .exe
 
-# UWAGA — lokalny test GUI na Linux wymaga backendu webview:
-#   pip install "pywebview[qt]"     (pociaga PyQt + QtWebEngine, bez sudo)
-# Na Windows (i w CI) pywebview uzywa wbudowanego Edge WebView2 — nic wiecej.
+# UWAGA — uruchomienie GUI NATYWNIE na Linux wymaga systemowej biblioteki:
+#   sudo apt install -y libxcb-cursor0
+# (potrzebna przez plugin Qt 'xcb'). Zbudowany .exe na Windows/wine jej NIE potrzebuje.
