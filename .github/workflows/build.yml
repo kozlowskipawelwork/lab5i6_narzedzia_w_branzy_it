@@ -45,3 +45,32 @@ jobs:
           name: konwerter-windows
           path: dist/*.exe
           if-no-files-found: error
+
+  # Natywny build na Linux (ELF) — GUI .exe nie odpalalo sie lokalnie pod wine,
+  # wiec dostarczamy tez natywna binarke linuksowa (PySide6, bez wine).
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repozytorium
+        uses: actions/checkout@v4
+
+      - name: Konfiguracja Pythona
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalacja zaleznosci (installResources.ps1 przez pwsh)
+        shell: pwsh
+        run: ./installResources.ps1
+
+      - name: Budowanie binarek Linux (ELF)
+        run: |
+          pyinstaller --onefile --name konwerter project.py
+          pyinstaller --onefile --name konwerter-gui gui.py
+
+      - name: Wyslanie artefaktu (Linux ELF)
+        uses: actions/upload-artifact@v4
+        with:
+          name: konwerter-linux
+          path: dist/*
+          if-no-files-found: error
