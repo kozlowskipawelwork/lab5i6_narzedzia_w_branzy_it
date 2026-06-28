@@ -89,6 +89,13 @@ Sekcja szczera, opisujaca droge do finalnego rozwiazania GUI:
    WebView2 ani WebKita, a build jest znacznie lzejszy. Styl interfejsu (ciemny motyw)
    realizowany przez QSS — arkusz stylow Qt o skladni zblizonej do CSS.
 
+4. **Testowanie pod wine sie nie powiodlo -> natywny ELF w pipeline.** Lokalnie (Linux)
+   `.exe` GUI nie chcial ruszyc pod wine (kolejno: `init_sys_streams`, a po przejsciu na
+   build z konsola i doinstalowaniu runtime VC++ — `DLL load failed importing QtCore`;
+   wine 9.0 okazal sie za stary na Qt 6.11). Dlatego zbudowalem **natywna binarke Linux
+   (ELF, PySide6, ~65 MB, bez wine)**, ktora uruchamia GUI wprost na Linuksie, i dolaczylem
+   jej build do pipeline (job `build-linux`, artefakt `konwerter-linux`).
+
 Zbudowane wczesniej pliki `.exe` (wersja pywebview) zostaly zachowane w katalogu
 [`exe_ciekawostki/`](exe_ciekawostki/) jako pamiatka tej iteracji.
 
