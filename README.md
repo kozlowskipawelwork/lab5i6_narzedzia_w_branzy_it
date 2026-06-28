@@ -93,9 +93,10 @@ Sekcja szczera, opisujaca droge do finalnego rozwiazania GUI:
    w pipeline.
 
 3. **Finalna decyzja: przepisanie GUI na PySide6 (Qt).** PySide6 pakuje sie w pelni do
-   samodzielnego `.exe` / ELF-a, **dziala pod wine i na Linuksie**, nie potrzebuje
-   WebView2 ani WebKita, a build jest znacznie lzejszy. Styl interfejsu (ciemny motyw)
-   realizowany przez QSS — arkusz stylow Qt o skladni zblizonej do CSS.
+   samodzielnego `.exe` (Windows) oraz natywnego ELF-a (Linux), nie potrzebuje WebView2
+   ani WebKita, a build jest znacznie lzejszy. Styl interfejsu (ciemny motyw) realizowany
+   przez QSS — arkusz stylow Qt o skladni zblizonej do CSS. (Zakladalem, ze `.exe` ruszy
+   tez pod wine — patrz pkt 4, gdzie sie to nie potwierdzilo.)
 
 4. **Testowanie pod wine sie nie powiodlo -> natywny ELF w pipeline.** Lokalnie (Linux)
    `.exe` GUI nie chcial ruszyc pod wine (kolejno: `init_sys_streams`, a po przejsciu na
@@ -106,6 +107,11 @@ Sekcja szczera, opisujaca droge do finalnego rozwiazania GUI:
 
 Zbudowane wczesniej pliki `.exe` (wersja pywebview) zostaly zachowane w katalogu
 [`exe_ciekawostki/`](exe_ciekawostki/) jako pamiatka tej iteracji.
+
+**Test na Windowsie:** obie wersje GUI — `.exe` z pywebview oraz `.exe` z PySide6 —
+zostaly przetestowane na komputerze z Windowsem kolegi ze studiow i uruchamiaja sie
+poprawnie. Opisane wyzej problemy dotyczyly **wylacznie uruchamiania pod wine na
+Linuksie**, a nie samego Windowsa (gdzie obie wersje dzialaja).
 
 ## Konwencja branchy
 
