@@ -35,7 +35,7 @@ jobs:
         run: pyinstaller --onefile --name konwerter project.py
 
       - name: Budowanie .exe (GUI)
-        run: pyinstaller --onefile --noconsole --name konwerter-gui --add-data "web;web" gui.py
+        run: pyinstaller --onefile --noconsole --name konwerter-gui gui.py
 
       # PDF wskazuje upload-artifact@v3, ale GitHub wycofal v3 (styczen 2025) i
       # taki workflow by sie wywalil — uzywamy dzialajacego v4 (odpowiednik 1:1).

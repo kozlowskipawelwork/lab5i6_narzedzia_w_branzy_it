@@ -23,11 +23,11 @@ program.exe dane.json dane.yml
 
 ```
 project.py              # CLI – wejscie programu + parsowanie argumentow (Task1)
-gui.py                  # GUI (pywebview) – Task8/9
+gui.py                  # GUI (PySide6 / Qt) – Task8/9
 converter/
   core.py               # rdzen: load/dump dla JSON/YAML/XML + walidacja (Task2-7)
 web/
-  index.html            # interfejs HTML/CSS (motyw "Nocturne")
+  index.html            # UI z iteracji pywebview (nieuzywane przez finalne GUI w PySide6)
 installResources.ps1    # Task0 – instalacja komponentow pip (uzywany w CI)
 requirements.txt        # zaleznosci (pip install -r)
 .github/workflows/      # GitHub Actions – auto-build .exe
@@ -65,7 +65,7 @@ Gotowy `.exe` powstaje automatycznie w GitHub Actions (artefakt builda).
 | Task2/3 | wczytanie/zapis JSON + walidacja | `converter/core.py` |
 | Task4/5 | wczytanie/zapis YAML + walidacja | `converter/core.py` |
 | Task6/7 | wczytanie/zapis XML + walidacja | `converter/core.py` |
-| Task8 | wersja z UI | `gui.py`, `web/index.html` |
+| Task8 | wersja z UI | `gui.py` |
 | Task9 | async odczyt/zapis w UI | `gui.py` (watek roboczy) |
 
 ## Historia / decyzje projektowe (iteracje)
